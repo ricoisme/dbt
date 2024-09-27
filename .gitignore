@@ -1,0 +1,14 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+/.vs/DemoWebAPI/v17
+/DemoWebAPI/obj
+/.vs/DemoWebAPI
+/DemoWebAPI/bin/Debug/net6.0
+/DemoWebAPI/bin/publish
+/DemoWebAPI/bin/Release/net6.0
+/.vs/ProjectEvaluation
+/.vs/DBT
+/DataSyncService/obj
+/DataSyncService/bin/Debug/net8.0
