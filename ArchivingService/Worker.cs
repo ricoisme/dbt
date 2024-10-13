@@ -47,10 +47,7 @@ namespace ArchivingService
 
                 foreach (var sourceTable in sourceTables)
                 {
-                    var isExistsInSource = CheckTableExists(sourceTable.TableName, _srcsqlSugarClient);
-                    var isExistsInTarget = CheckTableExists(sourceTable.TableName, _tarsqlSugarClient);
-
-                    if (!isExistsInSource || !isExistsInTarget)
+                    if (!TableExistsInBothClients(sourceTable.TableName))
                     {
                         continue;
                     }
@@ -67,8 +64,8 @@ namespace ArchivingService
                     var query = sourceTable.KeyQuery
                         .Replace("$startDate$", startDate)
                         .Replace("$endDate$", endDate);
-
                     var fullTableName = $"{sourceTable.SchemaName}.{sourceTable.TableName}";
+
                     try
                     {
                         var dt = await _srcsqlSugarClient.Ado
@@ -86,7 +83,7 @@ namespace ArchivingService
 
                         if (sourceTable.Archive)
                         {
-                            var rowCopied = await ArchiveDataAsync(dcs, fullTableName, sourceTable.DataCopyBatchSize);
+                            var rowCopied = await ArchiveDataAsync(dcs, fullTableName, sourceTable.DataCopyBatchSize, query);
                             processStat.RowsCopied = rowCopied;
                         }
 
@@ -106,14 +103,37 @@ namespace ArchivingService
                     }
                     catch (SqlException ex)
                     {
-                        processStat.CompleteDate = null;
-                        await UpsertProcessStatAsync(processStat);
-                        Console.WriteLine(ex.Message);
+                        await HandleErrorAsync(ex, processStat);
                     }
 
                     await Task.Delay(1000, stoppingToken);
                 }
             }
+        }
+
+        private ISqlSugarClient CreateSqlClient(string configId)
+        {
+            var srcScope = _serviceScopeFactory.CreateScope();
+            var client = srcScope.ServiceProvider.GetService<ISqlSugarClient>();
+            (client as SqlSugarClient).ChangeDatabase(configId);
+            return client;
+        }
+
+        private bool TableExistsInBothClients(string tableName)
+        {
+            var isExistsInSource = CheckTableExists(tableName, _srcsqlSugarClient);
+            var isExistsInTarget = CheckTableExists(tableName, _tarsqlSugarClient);
+            return isExistsInSource && isExistsInTarget;
+        }
+
+        private bool CheckTableExists(string tableName, ISqlSugarClient sqlSugarClient)
+        {
+            var result = sqlSugarClient.DbMaintenance.IsAnyTable(tableName, false);
+            if (!result)
+            {
+                Console.WriteLine($"{tableName} is not exists in {sqlSugarClient.CurrentConnectionConfig.ConfigId}");
+            }
+            return result;
         }
 
         private (string startDate, string endDate) GetDateRange(SourceTable sourceTable
@@ -164,11 +184,22 @@ namespace ArchivingService
                 : possibleEndDate.ToString("yyyy-MM-dd");
         }
 
-        private async Task<int> ArchiveDataAsync(List<Dictionary<string, object>> data, string fullTableName, int batchSize)
+        private async Task<int> ArchiveDataAsync(List<Dictionary<string, object>> data, string fullTableName, int batchSize, string query)
         {
             var rowCopied = 0;
+            var dt = await _tarsqlSugarClient.Ado
+                       .GetDataTableAsync(query);
+            var targetData = _tarsqlSugarClient.Utilities.DataTableToDictionaryList(dt);
+
+            var missingItems =
+                FindMissingItems(data, targetData, "OrderLineID");
+            if (missingItems == null || missingItems?.Any() == false)
+            {
+                return rowCopied;
+            }
+
             await _tarsqlSugarClient.Utilities.PageEachAsync(
-                data, batchSize,
+                missingItems, batchSize,
                   async pageList =>
                   {
                       rowCopied += await _tarsqlSugarClient
@@ -176,6 +207,16 @@ namespace ArchivingService
                       .ExecuteCommandAsync();
                   });
             return rowCopied;
+        }
+
+        private List<Dictionary<string, object>> FindMissingItems(
+        List<Dictionary<string, object>> sourceList,
+        List<Dictionary<string, object>> targetList,
+        string key)
+        {
+            var targetKeys = targetList.Select(d => d[key]).ToHashSet();
+
+            return sourceList.Where(d => !targetKeys.Contains(d[key])).ToList();
         }
 
         private async Task<int> PurgeDataAsync(List<Dictionary<string, object>> rowPks, string fullTableName, int batchSize)
@@ -209,24 +250,11 @@ namespace ArchivingService
             }
         }
 
-        ISqlSugarClient CreateSqlClient(string configId)
+        private async Task HandleErrorAsync(SqlException ex, ProcessState processStat)
         {
-            var srcScope = _serviceScopeFactory.CreateScope();
-            var client = srcScope.ServiceProvider.GetService<ISqlSugarClient>();
-            (client as SqlSugarClient).ChangeDatabase(configId);
-            return client;
+            processStat.CompleteDate = null;
+            await UpsertProcessStatAsync(processStat);
+            Console.WriteLine(ex.Message);
         }
-
-        bool CheckTableExists(string tableName, ISqlSugarClient sqlSugarClient)
-        {
-            var result = sqlSugarClient.DbMaintenance.IsAnyTable(tableName, false);
-            if (!result)
-            {
-                Console.WriteLine($"{tableName} is not exists in {sqlSugarClient.CurrentConnectionConfig.ConfigId}");
-            }
-            return result;
-        }
-
-
     }
 }
