@@ -29,7 +29,9 @@ namespace ArchivingService
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             _srcsqlSugarClient = CreateSqlClient("sourceDB");
+            _srcsqlSugarClient.Ado.CommandTimeOut = 30000;
             _tarsqlSugarClient = CreateSqlClient("targetDB");
+            _tarsqlSugarClient.Ado.CommandTimeOut = 30000;
             var retentionMonth = _configuration.GetValue<int>("RetentionMonth");
 
             while (!stoppingToken.IsCancellationRequested)
@@ -61,15 +63,24 @@ namespace ArchivingService
                        GetDateRange(sourceTable, retentionMonth, processStat);
                     Console.WriteLine($"StartDate:{startDate}, EndDate:{endDate}");
 
-                    var query = sourceTable.KeyQuery
-                        .Replace("$startDate$", startDate)
-                        .Replace("$endDate$", endDate);
+                    var parameters = new List<SugarParameter>();
+                    if (sourceTable.KeyQuery.Contains("@startDate"))
+                    {
+                        parameters.Add(
+                            new SugarParameter("@startDate", startDate));
+                    }
+                    if (sourceTable.KeyQuery.Contains("@endDate"))
+                    {
+                        parameters.Add(
+                            new SugarParameter("@endDate", endDate));
+                    }
+
                     var fullTableName = $"{sourceTable.SchemaName}.{sourceTable.TableName}";
 
                     try
                     {
                         var dt = await _srcsqlSugarClient.Ado
-                        .GetDataTableAsync(query);
+                        .GetDataTableAsync(sourceTable.KeyQuery, parameters);
 
                         if (dt == null || dt?.Rows?.Count == 0)
                         {
@@ -83,7 +94,7 @@ namespace ArchivingService
 
                         if (sourceTable.Archive)
                         {
-                            var rowCopied = await ArchiveDataAsync(dcs, fullTableName, sourceTable.DataCopyBatchSize, query);
+                            var rowCopied = await ArchiveDataAsync(dcs, fullTableName, sourceTable.DataCopyBatchSize, sourceTable.KeyQuery, parameters);
                             processStat.RowsCopied = rowCopied;
                         }
 
@@ -184,11 +195,11 @@ namespace ArchivingService
                 : possibleEndDate.ToString("yyyy-MM-dd");
         }
 
-        private async Task<int> ArchiveDataAsync(List<Dictionary<string, object>> data, string fullTableName, int batchSize, string query)
+        private async Task<int> ArchiveDataAsync(List<Dictionary<string, object>> data, string fullTableName, int batchSize, string query, List<SugarParameter> parameters)
         {
             var rowCopied = 0;
             var dt = await _tarsqlSugarClient.Ado
-                       .GetDataTableAsync(query);
+                       .GetDataTableAsync(query, parameters);
             var targetData = _tarsqlSugarClient.Utilities.DataTableToDictionaryList(dt);
 
             var missingItems =
