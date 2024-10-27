@@ -7,42 +7,61 @@ using System.Data.Common;
 
 namespace DataSyncService
 {
-    internal class Helper
+    internal sealed class SyncHelper
     {
         private SqlSyncChangeTrackingProvider _serverProvider;
         private SqlSyncChangeTrackingProvider _clientProvider;
         private IEnumerable<string> _tables;
+        private ILogger<Worker> _logger;
         private string _currentVersion;
         private string _nextVersion;
         private string _key;
-        private const string _getDropAllOldSps = @"SELECT CONCAT( 'drop proc ',SPECIFIC_SCHEMA,'.',SPECIFIC_NAME,' ;') as [statement]
-  FROM INFORMATION_SCHEMA.ROUTINES
- WHERE ROUTINE_TYPE = 'PROCEDURE'
- and (SPECIFIC_NAME like '%_$version$%')";
-        private ILogger<Worker> _logger;
+        private int _batchSize;
+        private int _sqlCommandTimeout;
 
-        internal Helper SetServerProvider(SqlSyncChangeTrackingProvider serverProvider)
+        internal SyncHelper SetDefault()
+        {
+            _serverProvider = null;
+            _clientProvider = null;
+            _tables = null;
+            _logger = null;
+            _currentVersion = string.Empty;
+            _nextVersion = string.Empty;
+            _key = string.Empty;
+            _batchSize = 1500;
+            _sqlCommandTimeout = 60;
+            return this;
+        }
+
+        internal SyncHelper SetServerProvider(SqlSyncChangeTrackingProvider serverProvider)
         {
             _serverProvider = serverProvider;
             return this;
         }
 
-        internal Helper SetClientProvider(SqlSyncChangeTrackingProvider clientProvider)
+        internal SyncHelper SetClientProvider(SqlSyncChangeTrackingProvider clientProvider)
         {
             _clientProvider = clientProvider;
             return this;
         }
 
-        internal Helper SetTables(IEnumerable<string> tables)
+        internal SyncHelper SetTables(IEnumerable<string> tables)
         {
             _tables = tables;
             return this;
         }
 
-        internal Helper SetVersion(string currentVersion, string nextVersion)
+        internal SyncHelper SetVersion(string currentVersion, string nextVersion)
         {
             _currentVersion = currentVersion;
             _nextVersion = nextVersion;
+            return this;
+        }
+
+        internal SyncHelper SetSyncOption(int batchSize, int sqlCommandTimeout)
+        {
+            _batchSize = batchSize;
+            _sqlCommandTimeout = sqlCommandTimeout;
             return this;
         }
 
@@ -51,13 +70,13 @@ namespace DataSyncService
         /// </summary>
         /// <param name="key"></param>
         /// <returns></returns>
-        internal Helper SetFilterVersion(string key)
+        internal SyncHelper SetFilterVersion(string key)
         {
             _key = key;
             return this;
         }
 
-        internal Helper SetLogger(ILogger<Worker> logger)
+        internal SyncHelper SetLogger(ILogger<Worker> logger)
         {
             _logger = logger;
             return this;
@@ -66,45 +85,54 @@ namespace DataSyncService
 
         public async Task<SyncAgent> SyncProcessAsync()
         {
-            var syncOption = new SyncOptions { BatchSize = 1500, DbCommandTimeout = 30 };
+            var syncOption = new SyncOptions { BatchSize = _batchSize, DbCommandTimeout = _sqlCommandTimeout };
             var agent = new SyncAgent(_clientProvider, _serverProvider, syncOption);
             agent.OnApplyChangesConflictOccured(async acfa =>
             {
                 var conflict = await acfa.GetSyncConflictAsync();
                 acfa.Resolution = ConflictResolution.ServerWins;
             });
-            var setup = new SyncSetup(_tables);
 
-            //setup the sync (triggers / tracking tables ...)
-            await agent.SynchronizeAsync(_currentVersion, setup);
+            try
+            {
+                var setup = new SyncSetup(_tables);
 
-            //determine if execution is necessary
-            if (string.IsNullOrEmpty(_nextVersion)) return agent;
-            var scopInfo = await agent.RemoteOrchestrator
-                .GetScopeInfoAsync(_nextVersion);
-            if (scopInfo.Schema?.HasRows == true) return agent;
+                //setup the sync (triggers / tracking tables ...)
+                await agent.SynchronizeAsync(_currentVersion, setup);
 
-            // server apply new version
-            var remoteOrchestrator = new RemoteOrchestrator(_serverProvider);
-            await remoteOrchestrator.ProvisionAsync(_nextVersion, setup);
-            Console.WriteLine($"{_serverProvider.GetDatabaseName()} migration done.");
+                //determine if execution is necessary
+                if (string.IsNullOrEmpty(_nextVersion)) return agent;
+                var scopInfo = await agent.RemoteOrchestrator
+                    .GetScopeInfoAsync(_nextVersion);
+                if (scopInfo.Schema?.HasRows == true) return agent;
 
-            // client apply new version
-            var sopeInfo = await agent.RemoteOrchestrator.GetScopeInfoAsync(_nextVersion);
-            var nextScopeInfo = await agent.LocalOrchestrator.ProvisionAsync(sopeInfo);
-            Console.WriteLine($"{_clientProvider.GetDatabaseName()} Provision done.");
+                // server apply new version
+                var remoteOrchestrator = new RemoteOrchestrator(_serverProvider);
+                await remoteOrchestrator.ProvisionAsync(_nextVersion, setup);
+                _logger.LogInformation($"{_serverProvider.GetDatabaseName()} migration done.");
 
-            // copy sync information into new version scope from last point
-            var nextScopeInfoClient = await agent.LocalOrchestrator
-                .GetScopeInfoClientAsync(_nextVersion);
-            var currentScopeInfoClient = await agent.LocalOrchestrator
-                .GetScopeInfoClientAsync(_currentVersion);
-            nextScopeInfoClient.ShadowScope(currentScopeInfoClient);
-            var saveResult = await agent.LocalOrchestrator
-                .SaveScopeInfoClientAsync(nextScopeInfoClient);
-            var result = await agent.SynchronizeAsync(_nextVersion);
+                // client apply new version
+                var sopeInfo = await agent.RemoteOrchestrator.GetScopeInfoAsync(_nextVersion);
+                var nextScopeInfo = await agent.LocalOrchestrator.ProvisionAsync(sopeInfo);
+                _logger.LogInformation($"{_clientProvider.GetDatabaseName()} Provision done.");
 
-            return agent;
+                // copy sync information into new version scope from last point
+                var nextScopeInfoClient = await agent.LocalOrchestrator
+                    .GetScopeInfoClientAsync(_nextVersion);
+                var currentScopeInfoClient = await agent.LocalOrchestrator
+                    .GetScopeInfoClientAsync(_currentVersion);
+                nextScopeInfoClient.ShadowScope(currentScopeInfoClient);
+                var saveResult = await agent.LocalOrchestrator
+                    .SaveScopeInfoClientAsync(nextScopeInfoClient);
+                var result = await agent.SynchronizeAsync(_nextVersion);
+
+                return agent;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, ex.Message);
+                return null;
+            }
         }
 
         public async Task DetermineDropAllAsync()
@@ -137,7 +165,7 @@ namespace DataSyncService
         private async Task DropOldSpsAsync(DbConnection connection)
         {
             var command = connection.CreateCommand();
-            command.CommandText = _getDropAllOldSps.Replace("$version$", _key);
+            command.CommandText = Const.GetDropAllOldSps.Replace("$version$", _key);
             try
             {
                 await connection.OpenAsync();

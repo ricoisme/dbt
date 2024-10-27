@@ -8,5 +8,7 @@
         public List<string> Tables { get; set; }
         public string CurrentVersion { get; set; }
         public string NextVersion { get; set; }
+        public int BatchSize { get; set; } = 1500;
+        public int SqlCommandTimeoutSec { get; set; } = 30;
     }
 }
