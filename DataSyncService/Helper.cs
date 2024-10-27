@@ -4,7 +4,6 @@ using Dotmim.Sync.SqlServer;
 using Microsoft.Data.SqlClient;
 using System.Data;
 using System.Data.Common;
-using System.Diagnostics;
 
 namespace DataSyncService
 {
@@ -20,6 +19,7 @@ namespace DataSyncService
   FROM INFORMATION_SCHEMA.ROUTINES
  WHERE ROUTINE_TYPE = 'PROCEDURE'
  and (SPECIFIC_NAME like '%_$version$%')";
+        private ILogger<Worker> _logger;
 
         internal Helper SetServerProvider(SqlSyncChangeTrackingProvider serverProvider)
         {
@@ -54,6 +54,12 @@ namespace DataSyncService
         internal Helper SetFilterVersion(string key)
         {
             _key = key;
+            return this;
+        }
+
+        internal Helper SetLogger(ILogger<Worker> logger)
+        {
+            _logger = logger;
             return this;
         }
 
@@ -104,7 +110,6 @@ namespace DataSyncService
         public async Task DetermineDropAllAsync()
         {
             var agent = new SyncAgent(_clientProvider, _serverProvider);
-
             var serverOrchestrator = new RemoteOrchestrator(_serverProvider);
             var clientOrchestrator = new LocalOrchestrator(_clientProvider);
 
@@ -125,8 +130,7 @@ namespace DataSyncService
                     await DropOldSpsAsync(_serverProvider.CreateConnection());
                     await DropOldSpsAsync(_clientProvider.CreateConnection());
                 }
-
-                Console.WriteLine("DropAll done.");
+                _logger.LogInformation("DropAll done.");
             }
         }
 
@@ -156,7 +160,7 @@ namespace DataSyncService
             }
             catch (SqlException ex)
             {
-                Debug.WriteLine(ex.Message);
+                _logger.LogError(ex, ex.Message);
                 throw;
             }
             finally

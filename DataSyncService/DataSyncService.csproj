@@ -12,4 +12,8 @@
     <PackageReference Include="Dotmim.Sync.SqlServer.ChangeTracking" Version="1.2.0" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
   </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Logging.Serilog\Logging.Serilog.csproj" />
+  </ItemGroup>
 </Project>
