@@ -12,5 +12,8 @@ namespace DataSyncService
   FROM INFORMATION_SCHEMA.ROUTINES
  WHERE ROUTINE_TYPE = 'PROCEDURE'
  and (SPECIFIC_NAME like '%_$version$%')";
+        internal const string GetDropAllUserTableTypes = @"select CONCAT('drop type ', name,' ;') from sys.types
+where is_user_defined = 1
+and name like '%_$version$%'";
     }
 }

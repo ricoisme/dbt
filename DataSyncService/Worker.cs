@@ -66,12 +66,13 @@ namespace DataSyncService
                     .SetServerProvider(serverProvider)
                     .SetClientProvider(clientProvider)
                     .SetTables(agentInfo.Tables)
+                    .SetLogger(_logger)
                     .SetVersion(agentInfo.CurrentVersion, agentInfo.NextVersion)
                     .SetSyncOption(agentInfo.BatchSize, agentInfo.SqlCommandTimeoutSec)
                     .SetFilterVersion("v");
 
-                //await syncHelper.DetermineDropAllAsync();
-
+                //await _syncHelper.DetermineDropAllAsync(true);
+                //return;
                 var agent = await _syncHelper.SyncProcessAsync();
                 if (agent == null) continue;
 

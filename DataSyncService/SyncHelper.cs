@@ -96,6 +96,10 @@ namespace DataSyncService
             try
             {
                 var setup = new SyncSetup(_tables);
+                foreach (var table in setup.Tables)
+                {
+                    table.SyncDirection = SyncDirection.DownloadOnly;
+                }
 
                 //setup the sync (triggers / tracking tables ...)
                 await agent.SynchronizeAsync(_currentVersion, setup);
@@ -135,14 +139,14 @@ namespace DataSyncService
             }
         }
 
-        public async Task DetermineDropAllAsync()
+        public async Task DetermineDropAllAsync(bool force = false)
         {
             var agent = new SyncAgent(_clientProvider, _serverProvider);
             var serverOrchestrator = new RemoteOrchestrator(_serverProvider);
             var clientOrchestrator = new LocalOrchestrator(_clientProvider);
 
             var scopInfos = await agent.RemoteOrchestrator.GetAllScopeInfosAsync();
-            if (scopInfos?.Count > 1 && string.IsNullOrEmpty(_nextVersion))
+            if (force || scopInfos?.Count > 1 && string.IsNullOrEmpty(_nextVersion))
             {
                 //await agent.LocalOrchestrator.DropAllAsync();
                 //await agent.RemoteOrchestrator.DropAllAsync();
