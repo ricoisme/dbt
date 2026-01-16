@@ -7,6 +7,9 @@ using System.Data.Common;
 
 namespace DataSyncService
 {
+    /// <summary>
+    /// 提供資料庫同步作業的輔助類別
+    /// </summary>
     internal sealed class SyncHelper
     {
         private SqlSyncChangeTrackingProvider _serverProvider;
@@ -19,6 +22,10 @@ namespace DataSyncService
         private int _batchSize;
         private int _sqlCommandTimeout;
 
+        /// <summary>
+        /// 將所有設定重設為預設值
+        /// </summary>
+        /// <returns>目前的 <see cref="SyncHelper"/> 執行個體，以支援鏈式呼叫</returns>
         internal SyncHelper SetDefault()
         {
             _serverProvider = null;
@@ -33,24 +40,45 @@ namespace DataSyncService
             return this;
         }
 
+        /// <summary>
+        /// 設定伺服器端的同步提供者
+        /// </summary>
+        /// <param name="serverProvider">伺服器端的 SQL 同步變更追蹤提供者</param>
+        /// <returns>目前的 <see cref="SyncHelper"/> 執行個體，以支援鏈式呼叫</returns>
         internal SyncHelper SetServerProvider(SqlSyncChangeTrackingProvider serverProvider)
         {
             _serverProvider = serverProvider;
             return this;
         }
 
+        /// <summary>
+        /// 設定用戶端的同步提供者
+        /// </summary>
+        /// <param name="clientProvider">用戶端的 SQL 同步變更追蹤提供者</param>
+        /// <returns>目前的 <see cref="SyncHelper"/> 執行個體，以支援鏈式呼叫</returns>
         internal SyncHelper SetClientProvider(SqlSyncChangeTrackingProvider clientProvider)
         {
             _clientProvider = clientProvider;
             return this;
         }
 
+        /// <summary>
+        /// 設定要同步的資料表集合
+        /// </summary>
+        /// <param name="tables">資料表名稱的集合</param>
+        /// <returns>目前的 <see cref="SyncHelper"/> 執行個體，以支援鏈式呼叫</returns>
         internal SyncHelper SetTables(IEnumerable<string> tables)
         {
             _tables = tables;
             return this;
         }
 
+        /// <summary>
+        /// 設定目前版本和下一個版本的識別字串
+        /// </summary>
+        /// <param name="currentVersion">目前使用的版本</param>
+        /// <param name="nextVersion">下一個版本</param>
+        /// <returns>目前的 <see cref="SyncHelper"/> 執行個體，以支援鏈式呼叫</returns>
         internal SyncHelper SetVersion(string currentVersion, string nextVersion)
         {
             _currentVersion = currentVersion;
@@ -58,6 +86,12 @@ namespace DataSyncService
             return this;
         }
 
+        /// <summary>
+        /// 設定同步作業的選項
+        /// </summary>
+        /// <param name="batchSize">批次大小</param>
+        /// <param name="sqlCommandTimeout">SQL 指令逾時時間(秒)</param>
+        /// <returns>目前的 <see cref="SyncHelper"/> 執行個體，以支援鏈式呼叫</returns>
         internal SyncHelper SetSyncOption(int batchSize, int sqlCommandTimeout)
         {
             _batchSize = batchSize;
@@ -66,23 +100,34 @@ namespace DataSyncService
         }
 
         /// <summary>
-        /// like '_%key%'
+        /// 設定版本篩選的關鍵字
         /// </summary>
-        /// <param name="key"></param>
-        /// <returns></returns>
+        /// <param name="key">篩選關鍵字，用於模糊比對版本名稱 (例如: '_%<paramref name="key"/>%')</param>
+        /// <returns>目前的 <see cref="SyncHelper"/> 執行個體，以支援鏈式呼叫</returns>
         internal SyncHelper SetFilterVersion(string key)
         {
             _key = key;
             return this;
         }
 
+        /// <summary>
+        /// 設定記錄器執行個體
+        /// </summary>
+        /// <param name="logger">記錄器執行個體</param>
+        /// <returns>目前的 <see cref="SyncHelper"/> 執行個體，以支援鏈式呼叫</returns>
         internal SyncHelper SetLogger(ILogger<Worker> logger)
         {
             _logger = logger;
             return this;
         }
 
-
+        /// <summary>
+        /// 執行非同步的資料同步程序
+        /// </summary>
+        /// <returns>包含 <see cref="SyncAgent"/> 的非同步作業。如果發生錯誤，則傳回 <see langword="null"/></returns>
+        /// <remarks>
+        /// 此方法會設定同步代理程式、處理衝突解決、並在必要時進行版本遷移
+        /// </remarks>
         public async Task<SyncAgent> SyncProcessAsync()
         {
             var syncOption = new SyncOptions { BatchSize = _batchSize, DbCommandTimeout = _sqlCommandTimeout };
@@ -139,6 +184,15 @@ namespace DataSyncService
             }
         }
 
+        /// <summary>
+        /// 判斷並執行清除所有同步相關物件的作業
+        /// </summary>
+        /// <param name="force">是否強制執行清除作業。預設為 <see langword="false"/></param>
+        /// <returns>代表非同步作業的工作</returns>
+        /// <remarks>
+        /// 此方法會清除同步範圍資訊、預存程序、追蹤資料表和觸發程序等物件。
+        /// 當存在多個範圍且沒有指定下一個版本時，或是強制執行時，才會進行清除作業
+        /// </remarks>
         public async Task DetermineDropAllAsync(bool force = false)
         {
             var agent = new SyncAgent(_clientProvider, _serverProvider);
@@ -166,6 +220,15 @@ namespace DataSyncService
             }
         }
 
+        /// <summary>
+        /// 非同步刪除舊版本的預存程序
+        /// </summary>
+        /// <param name="connection">資料庫連線</param>
+        /// <returns>代表非同步作業的工作</returns>
+        /// <exception cref="SqlException">當 SQL 執行發生錯誤時擲回</exception>
+        /// <remarks>
+        /// 此方法會查詢並刪除所有符合版本命名模式的預存程序
+        /// </remarks>
         private async Task DropOldSpsAsync(DbConnection connection)
         {
             var command = connection.CreateCommand();
