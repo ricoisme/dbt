@@ -47,6 +47,7 @@ namespace DataSyncService
         /// <returns>目前的 <see cref="SyncHelper"/> 執行個體，以支援鏈式呼叫</returns>
         internal SyncHelper SetServerProvider(SqlSyncChangeTrackingProvider serverProvider)
         {
+            ArgumentNullException.ThrowIfNull(serverProvider, nameof(serverProvider));
             _serverProvider = serverProvider;
             return this;
         }
@@ -58,6 +59,7 @@ namespace DataSyncService
         /// <returns>目前的 <see cref="SyncHelper"/> 執行個體，以支援鏈式呼叫</returns>
         internal SyncHelper SetClientProvider(SqlSyncChangeTrackingProvider clientProvider)
         {
+            ArgumentNullException.ThrowIfNull(clientProvider, nameof(clientProvider));
             _clientProvider = clientProvider;
             return this;
         }
@@ -69,6 +71,7 @@ namespace DataSyncService
         /// <returns>目前的 <see cref="SyncHelper"/> 執行個體，以支援鏈式呼叫</returns>
         internal SyncHelper SetTables(IEnumerable<string> tables)
         {
+            ArgumentNullException.ThrowIfNull(tables, nameof(tables));
             _tables = tables;
             return this;
         }
@@ -117,6 +120,7 @@ namespace DataSyncService
         /// <returns>目前的 <see cref="SyncHelper"/> 執行個體，以支援鏈式呼叫</returns>
         internal SyncHelper SetLogger(ILogger<Worker> logger)
         {
+            ArgumentNullException.ThrowIfNull(logger, nameof(logger));
             _logger = logger;
             return this;
         }
@@ -129,7 +133,13 @@ namespace DataSyncService
         /// 此方法會設定同步代理程式、處理衝突解決、並在必要時進行版本遷移
         /// </remarks>
         public async Task<SyncAgent> SyncProcessAsync()
-        {
+        {            
+            ArgumentNullException.ThrowIfNull(_serverProvider, nameof(_serverProvider));
+            ArgumentNullException.ThrowIfNull(_clientProvider, nameof(_clientProvider));
+            ArgumentNullException.ThrowIfNull(_tables, nameof(_tables));
+            ArgumentNullException.ThrowIfNull(_logger, nameof(_logger));
+            if (string.IsNullOrEmpty(_currentVersion))
+                throw new InvalidOperationException("Current version must be set before synchronization.");
             var syncOption = new SyncOptions { BatchSize = _batchSize, DbCommandTimeout = _sqlCommandTimeout };
             var agent = new SyncAgent(_clientProvider, _serverProvider, syncOption);
             agent.OnApplyChangesConflictOccured(async acfa =>
@@ -161,8 +171,8 @@ namespace DataSyncService
                 _logger.LogInformation($"{_serverProvider.GetDatabaseName()} migration done.");
 
                 // client apply new version
-                var sopeInfo = await agent.RemoteOrchestrator.GetScopeInfoAsync(_nextVersion);
-                var nextScopeInfo = await agent.LocalOrchestrator.ProvisionAsync(sopeInfo);
+                var scopeInfo = await agent.RemoteOrchestrator.GetScopeInfoAsync(_nextVersion);
+                var nextScopeInfo = await agent.LocalOrchestrator.ProvisionAsync(scopeInfo);
                 _logger.LogInformation($"{_clientProvider.GetDatabaseName()} Provision done.");
 
                 // copy sync information into new version scope from last point
@@ -231,37 +241,36 @@ namespace DataSyncService
         /// </remarks>
         private async Task DropOldSpsAsync(DbConnection connection)
         {
-            var command = connection.CreateCommand();
-            command.CommandText = Const.GetDropAllOldSps.Replace("$version$", _key);
-            try
-            {
-                await connection.OpenAsync();
-                var dataTable = new DataTable();
-                using (var dataReader = await command.ExecuteReaderAsync())
-                {
-                    dataTable.Load(dataReader);
-                }
+            ArgumentNullException.ThrowIfNull(connection, nameof(connection));
 
-                if (dataTable.Rows.Count > 0)
+            await using (connection)
+            {
+                await using var command = connection.CreateCommand();
+                command.CommandText = Const.GetDropAllOldSps.Replace("$version$", _key);
+                
+                try
                 {
-                    foreach (DataRow dr in dataTable.Rows)
+                    await connection.OpenAsync();
+                    var dataTable = new DataTable();
+                    await using (var dataReader = await command.ExecuteReaderAsync())
                     {
-                        command.CommandText = dr[0].ToString();
-                        command.ExecuteNonQuery();
+                        dataTable.Load(dataReader);
+                    }
+
+                    if (dataTable.Rows.Count > 0)
+                    {
+                        foreach (DataRow dr in dataTable.Rows)
+                        {
+                            command.CommandText = dr[0].ToString() ?? string.Empty;
+                            await command.ExecuteNonQueryAsync();
+                        }
                     }
                 }
-
-                await connection.CloseAsync();
-            }
-            catch (SqlException ex)
-            {
-                _logger.LogError(ex, ex.Message);
-                throw;
-            }
-            finally
-            {
-                if (connection.State != ConnectionState.Closed)
-                    connection.Close();
+                catch (SqlException ex)
+                {
+                    _logger.LogError(ex, "刪除舊版本預存程序時發生錯誤: {Message}", ex.Message);
+                    throw;
+                }
             }
         }
     }
