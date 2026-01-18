@@ -106,7 +106,11 @@ namespace DataSyncService
                 //await _syncHelper.DetermineDropAllAsync(true);
                 //return;
                 var agent = await _syncHelper.SyncProcessAsync();
-                if (agent == null) continue;
+                if (agent == null)
+                {
+                    _logger.LogWarning("Failed to create sync agent for {AgentName}. SyncProcessAsync returned null.", agentInfo.Name);
+                    continue;
+                }
 
                 var scopeInfoClient = await agent.LocalOrchestrator
                 .GetScopeInfoClientAsync(string.IsNullOrEmpty(agentInfo.NextVersion) ? agentInfo.CurrentVersion : agentInfo.NextVersion);
