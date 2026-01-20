@@ -4,7 +4,9 @@
 
 ## 核心原則 (Core Principles)
 - **回應語言**: 一律使用 **繁體中文 (Traditional Chinese, zh-TW)**。
-- **程式碼風格**: 簡潔、可讀性高，並符合 .NET/C# 的最佳實踐 (依據專案設定推斷)。
+- **程式碼風格**: 簡潔、可讀性高，並符合專案技術堆疊的最佳實踐。
+- **指令系統**: 本專案擁有 **74 個專業 instruction 檔案**，涵蓋 30+ 種程式語言與框架。詳見 [docs/instructions-readme.md](../docs/instructions-readme.md)。
+- **自動套用**: 當您在特定檔案類型中工作時，相應的 instructions 會自動載入並套用。
 
 ## 專有名詞對照表 (Glossary)
 在解釋或生成文字時，請嚴格遵守以下術語對照：
@@ -67,28 +69,265 @@
   - `docs(readme): 更新專案安裝說明 (Issue #789)`
 
 ### 程式碼審查與品質標準 (Code Review & Quality Standards)
-- **設計原則**: 嚴格遵守 **SOLID** 原則與 **高內聚低耦合**。
-- **命名風格**: 
-  - Class/Method/Property 使用 **PascalCase**。
-  - 變數/參數使用 **camelCase**。
-  - 私有欄位使用 `_camelCase`。
-  - 花括號必須換行 (Allman style)。
-- **品質指標**: 
-  - 循環複雜度 (Cyclomatic Complexity) <= 20。
-  - 可維護性指數 (Maintainability Index) >= 50。
-- **最佳實踐**:
-  - 全面使用 `async/await`。
-  - 透過建構函式注入 (Constructor Injection) 相依性。
-  - 後端必須驗證所有前端輸入 (FluentValidation/Data Annotations)。
+
+#### 通用設計原則
+- **SOLID 原則**: 單一職責、開放封閉、里氏替換、介面隔離、相依反轉
+- **高內聚低耦合**: 模組內部緊密相關，模組間依賴最小化
+- **DRY 原則**: Don't Repeat Yourself，避免程式碼重複
+- **KISS 原則**: Keep It Simple, Stupid，保持簡單
+- **安全優先**: 遵循 OWASP Top 10 安全性最佳實踐
+
+#### C# / .NET 命名風格
+- **類別/方法/屬性**: 使用 **PascalCase** (例: `UserService`, `GetUserById`)
+- **介面**: 前綴 `I` + **PascalCase** (例: `IUserRepository`)
+- **私有欄位**: `_camelCase` (例: `_userRepository`)
+- **區域變數/參數**: **camelCase** (例: `userId`, `userName`)
+- **常數**: **PascalCase** 或 **UPPER_CASE** (例: `MaxRetryCount` 或 `MAX_RETRY_COUNT`)
+- **花括號**: 必須換行 (Allman style)
+
+#### JavaScript / TypeScript 命名風格
+- **類別/介面**: **PascalCase** (例: `UserService`, `IUser`)
+- **函式/方法/變數**: **camelCase** (例: `getUserById`, `userName`)
+- **常數**: **UPPER_SNAKE_CASE** (例: `MAX_RETRY_COUNT`)
+- **React 元件**: **PascalCase** (例: `UserProfile`)
+- **檔案名稱**: **kebab-case** (例: `user-service.ts`) 或 **PascalCase** (React 元件)
+
+#### Python 命名風格
+- **類別**: **PascalCase** (例: `UserService`)
+- **函式/方法/變數**: **snake_case** (例: `get_user_by_id`, `user_name`)
+- **常數**: **UPPER_SNAKE_CASE** (例: `MAX_RETRY_COUNT`)
+- **私有方法/屬性**: 前綴單底線 `_method_name`
+- **模組**: **snake_case** (例: `user_service.py`)
+
+#### ASP.NET Core Web API 規範
+
+##### Controller 規範
+- **命名**: 使用 **PascalCase** + `Controller` 後綴 (例: `UsersController`, `OrdersController`)
+- **繼承**: 繼承自 `ControllerBase` (API) 或 `Controller` (MVC 視圖)
+- **路由**: 使用 `[Route("api/[controller]")]` 或明確路由 `[Route("api/v1/users")]`
+- **版本控制**: 建議使用 API 版本控制 (例: `api/v1/users`, `api/v2/users`)
+- **回應類型**: 使用 `[Produces("application/json")]` 明確指定
+- **單一職責**: 每個 Controller 只處理一個資源或相關操作
+
+##### Action 規範
+- **命名**: 使用具描述性的動詞 + 名詞 (例: `GetUser`, `CreateOrder`, `UpdateProduct`, `DeleteItem`)
+- **HTTP 方法屬性**:
+  - `[HttpGet]` - 查詢資料 (GET /api/users, GET /api/users/{id})
+  - `[HttpPost]` - 建立資源 (POST /api/users)
+  - `[HttpPut]` - 完整更新 (PUT /api/users/{id})
+  - `[HttpPatch]` - 部分更新 (PATCH /api/users/{id})
+  - `[HttpDelete]` - 刪除資源 (DELETE /api/users/{id})
+- **路由範本**: 
+  - 集合資源: `[HttpGet]` 或 `[HttpGet("")]`
+  - 單一資源: `[HttpGet("{id}")]` 或 `[HttpGet("{id:int}")]`
+  - 子資源: `[HttpGet("{userId}/orders")]`
+- **回應類型**: 
+  - 成功: `Ok(data)` (200), `Created(uri, data)` (201), `NoContent()` (204)
+  - 失敗: `NotFound()` (404), `BadRequest(error)` (400), `Unauthorized()` (401)
+- **非同步**: 所有 Action 必須為 `async` 並回傳 `Task<IActionResult>` 或 `Task<ActionResult<T>>`
+- **模型驗證**: 使用 `[FromBody]`, `[FromQuery]`, `[FromRoute]` 明確指定來源
+- **授權**: 使用 `[Authorize]` 保護需要驗證的端點
+- **參數驗證**: 檢查 `ModelState.IsValid` 或使用 `[ApiController]` 自動驗證
+
+##### 完整範例
+```csharp
+[ApiController]
+[Route("api/v1/[controller]")]
+[Produces("application/json")]
+public class UsersController : ControllerBase
+{
+    private readonly IUserService _userService;
+    private readonly ILogger<UsersController> _logger;
+
+    public UsersController(IUserService userService, ILogger<UsersController> logger)
+    {
+        _userService = userService;
+        _logger = logger;
+    }
+
+    /// <summary>
+    /// 取得所有使用者清單
+    /// </summary>
+    [HttpGet]
+    [ProducesResponseType(typeof(IEnumerable<UserDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IEnumerable<UserDto>>> GetUsers([FromQuery] UserQueryParameters parameters)
+    {
+        var users = await _userService.GetUsersAsync(parameters);
+        return Ok(users);
+    }
+
+    /// <summary>
+    /// 依 ID 取得單一使用者
+    /// </summary>
+    [HttpGet("{id:int}")]
+    [ProducesResponseType(typeof(UserDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<UserDto>> GetUser(int id)
+    {
+        var user = await _userService.GetUserByIdAsync(id);
+        
+        if (user == null)
+        {
+            return NotFound($"使用者 ID {id} 不存在");
+        }
+
+        return Ok(user);
+    }
+
+    /// <summary>
+    /// 建立新使用者
+    /// </summary>
+    [HttpPost]
+    [ProducesResponseType(typeof(UserDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<UserDto>> CreateUser([FromBody] CreateUserRequest request)
+    {
+        var user = await _userService.CreateUserAsync(request);
+        return CreatedAtAction(nameof(GetUser), new { id = user.Id }, user);
+    }
+
+    /// <summary>
+    /// 更新使用者資訊
+    /// </summary>
+    [HttpPut("{id:int}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UpdateUser(int id, [FromBody] UpdateUserRequest request)
+    {
+        var result = await _userService.UpdateUserAsync(id, request);
+        
+        if (!result)
+        {
+            return NotFound();
+        }
+
+        return NoContent();
+    }
+
+    /// <summary>
+    /// 刪除使用者
+    /// </summary>
+    [HttpDelete("{id:int}")]
+    [Authorize(Roles = "Admin")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DeleteUser(int id)
+    {
+        var result = await _userService.DeleteUserAsync(id);
+        
+        if (!result)
+        {
+            return NotFound();
+        }
+
+        return NoContent();
+    }
+}
+```
+
+##### 最佳實踐
+- ✅ 使用 `[ApiController]` 屬性啟用自動模型驗證和錯誤回應
+- ✅ 使用 `ProducesResponseType` 記錄所有可能的回應狀態碼（Swagger 文件）
+- ✅ 使用 XML 註解 `<summary>` 描述每個 Action 的用途
+- ✅ 參數使用路由約束（例: `{id:int}`, `{guid:guid}`）
+- ✅ 複雜查詢使用 DTO 物件而非多個參數
+- ✅ 使用 `ActionResult<T>` 取得型別安全與彈性回應
+- ✅ 避免在 Controller 中撰寫業務邏輯，委派給 Service 層
+- ✅ 使用分頁處理大量資料回應
+- ✅ 實作全域例外處理中介軟體
+- ✅ 使用 FluentValidation 或 Data Annotations 進行模型驗證
+
+##### 延伸閱讀
+本專案包含完整的 ASP.NET REST API 開發指南，涵蓋以下主題：
+
+**📖 參考檔案**: `.github/instructions/aspnet-rest-apis.instructions.md`
+
+**涵蓋內容**:
+- **API 設計基礎**: REST 架構原則、資源導向 URL 設計、HTTP 動詞使用
+- **專案結構**: 特性資料夾組織、領域驅動設計、分層架構
+- **Controller vs Minimal APIs**: 兩種方法的比較與適用場景
+- **資料存取模式**: Entity Framework Core、Repository 模式、資料庫遷移
+- **身份驗證與授權**: JWT Bearer Token、OAuth 2.0、角色與政策型授權
+- **驗證與錯誤處理**: FluentValidation、全域例外處理、RFC 7807 問題詳情
+- **API 版本控制**: 版本控制策略、Swagger/OpenAPI 整合
+- **記錄與監控**: 結構化記錄、Application Insights、效能監控
+- **測試策略**: 單元測試、整合測試、端對端測試
+- **效能最佳化**: 快取策略、分頁、壓縮、非同步程式設計
+- **部署與 DevOps**: 容器化、CI/CD 管道、健康檢查
+
+**使用方式**:
+- 當在 `*.cs` 或 `*.json` 檔案中工作時，此 instruction 會自動套用
+- 手動參考: `@workspace 請依據 aspnet-rest-apis.instructions 設計 API`
+
+#### 品質指標
+- **循環複雜度 (Cyclomatic Complexity)**: <= 20
+- **可維護性指數 (Maintainability Index)**: >= 50
+- **測試覆蓋率**: >= 80% (核心業務邏輯 >= 90%)
+- **程式碼重複率**: <= 5%
+
+#### 非同步程式設計最佳實踐
+- **C#**: 全面使用 `async/await`，避免 `.Wait()` 或 `.Result`
+- **JavaScript/TypeScript**: 使用 `async/await` 或 Promise，避免回呼地獄
+- **Python**: 使用 `async/await` (asyncio) 處理 I/O 密集操作
+- **命名慣例**: 非同步方法後綴 `Async` (C#) 或保持一致命名 (JS/Python)
+
+#### 相依性注入最佳實踐
+- **建構函式注入 (Constructor Injection)**: 主要方式，確保相依性在物件建立時就緒
+- **屬性注入 (Property Injection)**: 僅用於可選相依性
+- **方法注入 (Method Injection)**: 僅用於特定操作所需的相依性
+- **避免服務定位器 (Service Locator)**: 違反相依反轉原則
+
+#### 輸入驗證與安全性
+- **後端必須驗證所有前端輸入**: 使用 FluentValidation (C#) 或類似框架
+- **參數化查詢**: 防止 SQL Injection
+- **輸出編碼**: 防止 XSS 攻擊
+- **HTTPS Only**: 所有網路通訊必須加密
+- **密鑰管理**: 使用環境變數或密鑰管理服務，**禁止硬編碼**
 
 ### 專案環境 (Project Context)
-- **技術堆疊**: 本專案推測為 .NET 環境 (基於 `.gitignore` 與 VS Code 設定)。
+- **技術堆疊**: 多語言專案，支援 .NET、Python、JavaScript/TypeScript、React、Angular、Vue 等
 - **主要配置**: 
-  - `.vscode/settings.json` 包含了詳細的 Copilot 設定與術語定義。
-  - `我的英雄學院/` 目錄包含專案相關圖片資源。
+  - `.vscode/settings.json` 包含了詳細的 Copilot 設定與術語定義
+  - `.github/instructions/` 包含 74 個專業指令檔案
+  - `我的英雄學院/` 目錄包含專案相關圖片資源
 
-### 測試 (Testing)
-- 若需撰寫測試，請優先將相關測試整合在同一測試套件 (Suite) 中。
+### 測試標準 (Testing Standards)
+
+#### 測試框架選擇
+- **C#**: MSTest, xUnit, NUnit
+- **JavaScript/TypeScript**: Vitest, Jest, Playwright
+- **Python**: pytest, unittest
+- **E2E 測試**: Playwright (支援 .NET 與 TypeScript)
+
+#### 測試組織
+- **AAA 模式**: Arrange (準備) → Act (執行) → Assert (斷言)
+- **命名慣例**: 清楚描述測試意圖 (例: `Should_ReturnUser_When_UserExists`)
+- **測試套件**: 將相關測試整合在同一測試套件 (Suite) 中
+- **測試獨立性**: 每個測試應該獨立運行，不依賴其他測試
+
+#### 測試覆蓋率目標
+- **單元測試**: 核心業務邏輯 >= 90%
+- **整合測試**: 關鍵 API 端點與資料庫操作 >= 80%
+- **E2E 測試**: 關鍵使用者流程 100%
+
+### 效能最佳化 (Performance Optimization)
+
+#### 前端效能
+- **資源最佳化**: 圖片壓縮 (WebP, AVIF)、程式碼分割、Tree-shaking
+- **延遲載入**: 圖片 `loading="lazy"`、動態 import 元件
+- **快取策略**: 瀏覽器快取、Service Worker、CDN
+- **打包最佳化**: Webpack, Vite, esbuild 設定最佳化
+
+#### 後端效能
+- **資料庫查詢**: 使用索引、避免 N+1 查詢、查詢最佳化
+- **快取機制**: Redis、Memcached、應用程式層快取
+- **非同步處理**: 使用訊息佇列 (RabbitMQ, Azure Service Bus) 處理耗時任務
+- **連線池**: 資料庫連線池、HTTP 連線重用
+
+#### 監控與分析
+- **APM 工具**: Application Insights, New Relic, Datadog
+- **效能剖析**: Chrome DevTools, dotTrace, Py-Spy
+- **負載測試**: k6, JMeter, Gatling
 ## 可用的 Prompts 指南 (Available Prompts Guide)
 
 本專案在 `.github/prompts/` 目錄下提供了 28 個專業 prompt 檔案，涵蓋各種開發場景。詳細說明請參閱 [docs/prompt-readme.md](../docs/prompt-readme.md)。
@@ -199,4 +438,88 @@
 - 根據專案內容推薦相關 prompts
 - 從 [GitHub awesome-copilot](https://github.com/github/awesome-copilot) 發現新工具
 - 避免重複安裝已有的 prompts
-如果你不知道答案，請不要隨意猜測，請直接詢問我。
+
+### 可用的 Instructions 指南 (Available Instructions Guide)
+
+本專案擁有 **74 個專業 instruction 檔案**，自動為不同檔案類型提供客製化指導。
+
+#### 主要類別
+
+**AI 與 Agent 開發** (6 個檔案)
+- 建立自訂 Copilot Agent、Agent Skills、Prompt 工程
+
+**程式語言** (22 個檔案)
+- C#/.NET (10個): csharp, dotnet-architecture, blazor, maui, wpf 等
+- Python (5個): python, langchain, dataverse, mcp-server
+- JavaScript/TypeScript (3個): typescript-5, nodejs-vitest, azure-functions
+- 其他 (4個): dart-flutter, R, shell, powershell
+
+**框架** (9 個檔案)
+- 前端 (6個): angular, react, vue3, nextjs, nextjs-tailwind, html-css
+- 後端 (3個): aspnet-rest-apis, nestjs, wordpress
+
+**雲端與基礎設施** (14 個檔案)
+- Azure (3個): logic-apps, bicep, terraform
+- Microsoft 365 (3個): declarative-agents, mcp-m365, typespec
+- Power BI (6個): custom-visuals, data-modeling, dax, devops, report-design, security
+- Kubernetes (2個): deployment, manifests
+
+**DevOps 與測試** (8 個檔案)
+- CI/CD: github-actions, azure-pipelines, ansible, docker
+- 測試: playwright-typescript, playwright-dotnet, pester-5
+
+**安全性與品質** (6 個檔案)
+- security-owasp, code-review-generic, gilfoyle-code-review
+- performance-optimization
+
+**文件與規範** (5 個檔案)
+- markdown, localization, instructions, spec-driven-workflow
+
+詳細說明請參閱 **[docs/instructions-readme.md](../docs/instructions-readme.md)**
+
+### 使用 Instructions 的方式
+
+#### 自動套用
+當您在符合特定模式的檔案中工作時，相應的 instructions 會自動載入：
+- 編輯 `*.cs` 檔案 → 自動套用 `csharp.instructions`
+- 編輯 `*.ts` 檔案 → 自動套用 `typescript-5-es2022.instructions`
+- 編輯 `*.py` 檔案 → 自動套用 `python.instructions`
+- 編輯 Dockerfile → 自動套用 `containerization-docker.instructions`
+
+#### 手動引用
+在 Copilot Chat 中手動參考特定 instruction：
+```
+@workspace 請依據 security-and-owasp.instructions 審查這段程式碼的安全性
+@workspace 使用 performance-optimization.instructions 最佳化這個查詢
+@workspace 根據 dotnet-architecture-good-practices 審查這個專案結構
+```
+
+### 開發工作流程建議
+
+#### 新專案啟動
+1. 使用 `aspnet-code-api` 或相應框架 instruction 建立專案結構
+2. 參考 `dotnet-architecture-good-practices` 規劃架構
+3. 設定 `github-actions-ci-cd` 建立 CI/CD 管道
+4. 套用 `security-and-owasp` 進行安全性檢查
+
+#### 日常開發
+1. 遵循語言特定的 instruction (csharp, python, typescript 等)
+2. 使用 `code-review-generic` 進行自我審查
+3. 執行 `performance-optimization` 檢查效能瓶頸
+4. 參考測試 instruction (playwright, pester 等) 撰寫測試
+
+#### 程式碼審查
+1. 使用 `code-review-generic` 或 `gilfoyle-code-review` 進行全面審查
+2. 檢查 `security-and-owasp` 確保安全性
+3. 驗證設計模式符合 `dotnet-design-pattern-review` (若為 .NET)
+4. 確認效能符合 `performance-optimization` 標準
+
+### 注意事項
+
+- ✅ **充分利用 Instructions**: 74 個專業指令檔案是您的最佳開發夥伴
+- ✅ **保持一致性**: 遵循專案既定的編碼風格與命名慣例
+- ✅ **安全優先**: 所有程式碼都應通過 OWASP 安全性檢查
+- ✅ **測試驅動**: 先寫測試，再寫實作 (TDD)
+- ✅ **效能意識**: 在設計階段就考慮效能影響
+- ⚠️ **不確定時**: 如果您不知道答案，請不要隨意猜測，請直接詢問我
+- ⚠️ **重大變更**: 涉及架構或重大功能變更時，請先討論方案
