@@ -46,6 +46,8 @@ namespace WebApplication1.Services
                 throw new ArgumentOutOfRangeException(nameof(level));
 
             decimal step = (LowestMultiplier - HighestMultiplier) / (TotalLevels - 1);
+            // Levels increase from Basic (index 0) to Platinum (index TotalLevels-1).
+            // We want Basic -> LowestMultiplier, Platinum -> HighestMultiplier.
             decimal multiplier = LowestMultiplier - (index * step);
             return Math.Round(multiplier, 4); // 保留小數四位以便後續計算
         }

@@ -26,9 +26,9 @@ namespace DBT.Tests.Services
         public void ApplyDiscount_Applies_Multiplier_And_Rounds_To_Two_Decimals()
         {
             decimal amount = 123.45m;
-            // Silver multiplier = 0.8250 => 123.45 * 0.825 = 101.87125 => rounded to 101.87
+            // Silver multiplier = 0.8250 => 123.45 * 0.825 = 101.84625 => rounded to 101.85
             var discounted = _service.ApplyDiscount(amount, MembershipLevel.Silver);
-            Assert.AreEqual(101.87m, discounted);
+            Assert.AreEqual(101.85m, discounted);
         }
     }
 }
