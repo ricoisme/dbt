@@ -8,6 +8,15 @@
 - **指令系統**: 本專案擁有 **74 個專業 instruction 檔案**，涵蓋 30+ 種程式語言與框架。詳見 [docs/instructions-readme.md](../docs/instructions-readme.md)。
 - **自動套用**: 當您在特定檔案類型中工作時，相應的 instructions 會自動載入並套用。
 
+### 優先套用 Skills 規則
+- 當同時存在一般 instruction（`.github/instructions/`）與專門的 Skill（`.github/skills/*/SKILL.md`）時，**應優先套用對應 Skill 的專業規則**，因為 Skill 提供領域特定（domain-specific）且具體的操作指引。
+- 使用流程：
+  1. 若任務屬於某個技能領域，先以 `read_file` 讀取該 Skill 的 `SKILL.md`。
+  2. 依 `SKILL.md` 的指引執行步驟（包含範例、驗證與回報格式）。
+  3. 若 `SKILL.md` 與一般 instruction 衝突，遵循 Skill 的規則並在回報中註明採用該 Skill 的原因。
+- 範例：若處理 C# 相關問題，優先讀取並遵循 `.github/skills/csharp-code-gatekeeper/SKILL.md` 的建議（最佳實踐、安全性檢查、命名和風格規則）。
+- 註記：在自動化任務或多階段工作流中，請明確註明所使用的 Skill 名稱與版本以利可追溯性。
+
 ## 專有名詞對照表 (Glossary)
 在解釋或生成文字時，請嚴格遵守以下術語對照：
 
