@@ -100,10 +100,6 @@ internal sealed class XELFileHelper
                 {
                     sb.AppendLine(xevent.ToString());
                 }
-                catch (OperationCanceledException)
-                {
-                    throw;
-                }
                 catch (EndOfStreamException eosEx)
                 {
                     errors.Add($"{inputFileName} End of stream reached unexpectedly: {eosEx.Message}");
@@ -114,10 +110,6 @@ internal sealed class XELFileHelper
                 }
                 return Task.CompletedTask;
             }, CancellationToken.None);
-        }
-        catch (OperationCanceledException)
-        {
-            throw;
         }
         catch (EndOfStreamException eosEx)
         {
