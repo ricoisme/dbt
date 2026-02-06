@@ -105,7 +105,7 @@ internal sealed class XELFileHelper
                 {
                     errors.Add($"{inputFileName} End of stream reached unexpectedly: {eosEx.Message}");
                 }
-                catch (Exception ex) when (ex is not OperationCanceledException and not TaskCanceledException)
+                catch (Exception ex) when (ex is not OperationCanceledException)
                 {
                     errors.Add($"{inputFileName} Error processing event: {ex.Message}");
                 }
@@ -116,7 +116,7 @@ internal sealed class XELFileHelper
         {
             errors.Add($"{inputFileName} End of stream reached unexpectedly: {eosEx.Message}");
         }
-        catch (Exception ex) when (ex is not OperationCanceledException and not TaskCanceledException)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             errors.Add($"{inputFileName} Error processing XEL file: {ex.Message}");
         }
