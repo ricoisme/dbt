@@ -60,10 +60,11 @@ internal sealed class XELFileHelper
         await Task.WhenAll(tasks);
 
         // 顯示所有錯誤訊息
-        if (!errors.IsEmpty)
+        var errorSnapshot = errors.ToArray();
+        if (errorSnapshot.Length > 0)
         {
             Console.WriteLine("Errors occurred during processing:");
-            foreach (var error in errors)
+            foreach (var error in errorSnapshot)
             {
                 Console.WriteLine(error);
             }
