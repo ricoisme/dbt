@@ -59,7 +59,7 @@ internal sealed class XELFileHelper
         var tasks = files.Select(file => ProcessFileAsync(file, errors));
         await Task.WhenAll(tasks);
 
-        // 顯示所有錯誤訊息
+        // 顯示所有錯誤訊息（所有工作完成後再取快照）
         var errorSnapshot = errors.ToArray();
         if (errorSnapshot.Length > 0)
         {
@@ -105,7 +105,7 @@ internal sealed class XELFileHelper
                 {
                     errors.Add($"{inputFileName} End of stream reached unexpectedly: {eosEx.Message}");
                 }
-                catch (Exception ex) when (ex is not OperationCanceledException)
+                catch (Exception ex) when (ex is not OperationCanceledException and not TaskCanceledException)
                 {
                     errors.Add($"{inputFileName} Error processing event: {ex.Message}");
                 }
@@ -116,7 +116,7 @@ internal sealed class XELFileHelper
         {
             errors.Add($"{inputFileName} End of stream reached unexpectedly: {eosEx.Message}");
         }
-        catch (Exception ex) when (ex is not OperationCanceledException)
+        catch (Exception ex) when (ex is not OperationCanceledException and not TaskCanceledException)
         {
             errors.Add($"{inputFileName} Error processing XEL file: {ex.Message}");
         }
