@@ -1,0 +1,17 @@
+name: Setup Development Environment
+description: Pre-install dependencies and tools for the DBT .NET solution
+
+steps:
+  - name: Setup .NET SDK
+    uses: actions/setup-dotnet@v4
+    with:
+      dotnet-version: '8.0.x'
+  
+  - name: Restore NuGet packages
+    run: dotnet restore DBT.sln
+  
+  - name: Build solution
+    run: dotnet build DBT.sln --no-restore --configuration Debug
+  
+  - name: Verify build
+    run: dotnet build DBT.sln --configuration Debug --no-restore --verbosity minimal

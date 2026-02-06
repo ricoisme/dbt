@@ -57,8 +57,58 @@
 > 涵蓋 API 設計、資料存取、身份驗證、測試、效能最佳化等完整主題
 
 ### 專案環境 (Project Context)
-- **技術堆疊**: .NET、Python、JavaScript/TypeScript、React、Angular、Vue
-- **配置檔案**: `.vscode/settings.json`、`.github/instructions/`（74 個專業指令）
+
+本專案是一組以 .NET 為主的工具與服務集合，包含：
+
+- **技術堆疊**: 
+  - .NET 8.0 (主要平台)
+  - ASP.NET Core Web API
+  - Worker Services (背景服務)
+  - Serilog (日誌記錄)
+  - MSTest (單元測試)
+  
+- **專案結構**:
+  - `WebApplication1`: ASP.NET Core Web API
+  - `ArchivingService`: 背景封存服務
+  - `DataSyncService`: 資料同步服務
+  - `XelParser`: XEL 解析工具
+  - `Logging.Serilog`: Serilog 擴充函式庫
+  - `DBT.Tests`: 測試專案
+
+- **配置檔案**: `.vscode/settings.json`、`.github/instructions/`（74 個專業指令）、`.github/copilot-setup-steps.yml`
+
+### 建置與測試 (Build & Test)
+
+**建置專案**:
+```powershell
+# 還原 NuGet 套件
+dotnet restore DBT.sln
+
+# 建置整個解決方案
+dotnet build DBT.sln --configuration Debug
+
+# 建置特定專案
+dotnet build WebApplication1/WebApplication1.csproj
+```
+
+**執行測試**:
+```powershell
+# 執行所有測試
+dotnet test
+
+# 執行特定測試專案
+dotnet test DBT.Tests/DBT.Tests.csproj
+
+# 產生測試報告與覆蓋率
+dotnet test --logger "trx;LogFileName=test_results.trx" --collect:"XPlat Code Coverage"
+```
+
+**驗證變更**:
+在提交變更之前，請確保：
+1. ✅ 所有測試通過：`dotnet test`
+2. ✅ 程式碼建置成功：`dotnet build DBT.sln`
+3. ✅ 遵循程式碼風格指南
+4. ✅ 包含適當的單元測試（覆蓋率 ≥ 90%）
 
 ### 測試與效能標準
 
