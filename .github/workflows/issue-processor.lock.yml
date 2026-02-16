@@ -23,7 +23,7 @@
 #
 # 針對 issues 進行自動分類、標籤與回覆的 agentic workflow。
 #
-# frontmatter-hash: f9483ebaa88d77d66d3b90a00c4901fe3bc560bf03df86a43663d244eda2232f
+# frontmatter-hash: 49a33cceb60e7dbdd8b6040e31a2ea15276c3a479777889dbb4986f560a6b72f
 
 name: "Issue Processor Agent"
 "on":
@@ -31,7 +31,6 @@ name: "Issue Processor Agent"
     types:
     - opened
     - reopened
-    - edited
   workflow_dispatch:
 
 permissions: {}
