@@ -16,3 +16,4 @@ post_date: "2026-02-16"
 - [x] 新增 gh-aw workflow 定義檔並涵蓋非 Copilot 判斷邏輯
 - [x] 編譯 workflow 產生對應的 lock 檔
 - [x] 驗證 workflow 設定與檔案結構
+- [x] 補充錯誤處理限制以避免流程錯誤時自動建立 issue
