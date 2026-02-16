@@ -23,7 +23,7 @@
 #
 # Analyze new issues, add triage labels, and post a structured response.
 #
-# frontmatter-hash: d91ac0fb215318aec354d75565624d20ae719048271976ed54c66778934d2f01
+# frontmatter-hash: 09e4993021a88b1f9e93c30811b25b3002eab744bda1cdcbaec63046db83966c
 
 name: "Issue Triage Assistant"
 "on":
@@ -41,7 +41,7 @@ run-name: "Issue Triage Assistant"
 
 jobs:
   activation:
-    runs-on: ubuntu-slim
+    runs-on: ubuntu-latest
     permissions:
       contents: read
     outputs:
@@ -777,7 +777,7 @@ jobs:
       - detection
       - safe_outputs
     if: (always()) && (needs.agent.result != 'skipped')
-    runs-on: ubuntu-slim
+    runs-on: ubuntu-latest
     permissions:
       contents: read
       discussions: write
@@ -970,7 +970,7 @@ jobs:
       - agent
       - detection
     if: ((!cancelled()) && (needs.agent.result != 'skipped')) && (needs.detection.outputs.success == 'true')
-    runs-on: ubuntu-slim
+    runs-on: ubuntu-latest
     permissions:
       contents: read
       discussions: write

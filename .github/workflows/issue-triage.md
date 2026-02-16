@@ -9,12 +9,14 @@ permissions:
   actions: read
   issues: read
   pull-requests: read
+runs-on: ubuntu-latest
 roles: all
 tools:
   github:
     toolsets: [default]
     read-only: true
 safe-outputs:
+  runs-on: ubuntu-latest
   add-labels:
     allowed: [bug, enhancement, question, documentation]
     max: 2
@@ -49,4 +51,5 @@ timeout-minutes: 5
 - 僅能使用允許的 safe-outputs（add-labels、add-comment）。
 - 不要關閉 issue，也不要修改其他欄位。
 - 若 issue 內容過於簡短或缺漏嚴重，請優先要求補充資訊。
+- 新評論會自動隱藏先前的工作流程評論（outdated），以降低討論串雜訊。
 - 回覆請保持專業、友善、簡潔。
