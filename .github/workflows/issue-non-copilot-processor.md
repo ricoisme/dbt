@@ -4,6 +4,7 @@ description: "Process issues created by non-Copilot users and respond with a tri
 on:
   issues:
     types: [opened, reopened]
+if: ${{ !contains(github.event.issue.user.login, 'copilot') }}	
 permissions:
   contents: read
   pull-requests: read
@@ -18,7 +19,7 @@ safe-outputs:
     max: 1
     target: "triggering"
     hide-older-comments: true
-timeout-minutes: 5
+timeout-minutes: 5                
 ---
 
 ## 非 Copilot Issue 初步處理
