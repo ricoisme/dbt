@@ -23,6 +23,8 @@ timeout-minutes: 5
 
 ## 非 Copilot Issue 初步處理
 
+**使用模型：GPT-5.3-Codex**
+
 請處理 GitHub issue #${{ github.event.issue.number }}，並只在需要時輸出 **一則** `add-comment` safe output。
 
 ### 規則
