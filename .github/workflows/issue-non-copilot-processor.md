@@ -1,15 +1,14 @@
 ---
 name: "Issue Intake (Non-Copilot)"
 description: "Process issues created by non-Copilot users and respond with a triage summary."
-model: "gpt-5.2-codex"
 on:
   issues:
     types: [opened, reopened]
 if: ${{ !contains(github.event.issue.user.login, 'copilot') }}
 permissions:
-  contents: write
-  pull-requests: write
-  issues: write
+  contents: read
+  pull-requests: read
+  issues: read
   actions: read
   checks: read
   statuses: read
