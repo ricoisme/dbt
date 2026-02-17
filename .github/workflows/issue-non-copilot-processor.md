@@ -4,7 +4,6 @@ description: "Process issues created by non-Copilot users and respond with a tri
 on:
   issues:
     types: [opened, reopened]
-if: ${{ github.event.issue.user.login == 'ricoisem' }}
 permissions:
   contents: read
   pull-requests: read
