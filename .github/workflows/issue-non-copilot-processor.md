@@ -7,9 +7,12 @@ on:
     types: [opened, reopened]
 if: ${{ !contains(github.event.issue.user.login, 'copilot') }}
 permissions:
-  issues: read
-  contents: read
+  contents: write
   pull-requests: write
+  issues: write
+  actions: read
+  checks: read
+  statuses: read
 roles: all
 network: {}
 safe-outputs:
