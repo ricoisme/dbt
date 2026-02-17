@@ -23,7 +23,7 @@
 #
 # Process issues created by non-Copilot users and respond with a triage summary.
 #
-# frontmatter-hash: 64b48c4b9824215ca85d84f14fa0bbd7e4eddedea4fcb276316d0404bc901968
+# frontmatter-hash: 77fc89da4c1ca24520fe467290a7bec40ace8c7ee9cd3c83aa31b3eff2d3e88a
 
 name: "Issue Intake (Non-Copilot)"
 "on":
@@ -590,7 +590,7 @@ jobs:
           COPILOT_AGENT_RUNNER_TYPE: STANDALONE
           COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
           GH_AW_MCP_CONFIG: /home/runner/.copilot/mcp-config.json
-          GH_AW_MODEL_AGENT_COPILOT: ${{ vars.GH_AW_MODEL_AGENT_COPILOT || 'gpt-5.3-codex' }}
+          GH_AW_MODEL_AGENT_COPILOT: ${{ vars.GH_AW_MODEL_AGENT_COPILOT || '' }}
           GH_AW_PROMPT: /tmp/gh-aw/aw-prompts/prompt.txt
           GH_AW_SAFE_OUTPUTS: ${{ env.GH_AW_SAFE_OUTPUTS }}
           GITHUB_HEAD_REF: ${{ github.head_ref }}
@@ -982,3 +982,4 @@ jobs:
             setupGlobals(core, github, context, exec, io);
             const { main } = require('/opt/gh-aw/actions/safe_output_handler_manager.cjs');
             await main();
+
