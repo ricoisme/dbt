@@ -1,6 +1,7 @@
 ---
 name: "Issue Intake (Non-Copilot)"
 description: "Process issues created by non-Copilot users and respond with a triage summary."
+model: "gpt-5.2-codex"
 on:
   issues:
     types: [opened, reopened]
