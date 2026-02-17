@@ -8,6 +8,8 @@ on:
 if: ${{ !contains(github.event.issue.user.login, 'copilot') }}
 permissions:
   issues: read
+  contents: read
+  pull-requests: write
 roles: all
 network: {}
 safe-outputs:
