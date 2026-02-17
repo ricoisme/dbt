@@ -4,7 +4,6 @@ description: "Process issues created by non-Copilot users and respond with a tri
 on:
   issues:
     types: [opened, reopened]
-if: ${{ !contains(github.event.issue.user.login, 'copilot') }}	
 permissions:
   contents: read
   pull-requests: read
@@ -35,6 +34,7 @@ timeout-minutes: 5
    - 缺漏資訊（重現步驟、期望/實際結果、環境版本、日誌等）
    - 下一步建議
 3. 若資料不足（例如 issue 內文為空）、權限不足或任何錯誤，不輸出任何 safe output 並結束。
+4. **若 workflow 執行失敗或發生異常，不要自動建立 issue，不輸出任何 safe output 並結束。**
 
 ### 回覆格式
 

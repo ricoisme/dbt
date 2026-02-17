@@ -23,7 +23,7 @@
 #
 # Process issues created by non-Copilot users and respond with a triage summary.
 #
-# frontmatter-hash: 48764f4037ac076a8586b75c9d1ed8f3802235e0a82231a8345bc7092e6382a9
+# frontmatter-hash: 77fc89da4c1ca24520fe467290a7bec40ace8c7ee9cd3c83aa31b3eff2d3e88a
 
 name: "Issue Intake (Non-Copilot)"
 "on":
@@ -41,7 +41,6 @@ run-name: "Issue Intake (Non-Copilot)"
 
 jobs:
   activation:
-    if: ${{ !contains(github.event.issue.user.login, 'copilot') }}
     runs-on: ubuntu-slim
     permissions:
       contents: read
