@@ -23,13 +23,13 @@ timeout-minutes: 5
 
 ### 規則
 
-1. 若作者帳號或標籤包含 `copilot` / `ai` / `ai-generated`，直接結束，不輸出 safe output。
+1. 若作者帳號或任一標籤「包含」`copilot`、`ai`、或 `ai-generated` 任一字樣（不分大小寫、子字串比對），直接結束，不輸出 safe output。
 2. 若為非 Copilot issue，輸出繁體中文回覆，內容包含：
    - 摘要（1-3 點）
    - 問題類型（bug / feature / question / documentation / other）
    - 缺漏資訊（重現步驟、期望/實際結果、環境版本、日誌等）
    - 下一步建議
-3. 若資料不足、權限不足或任何錯誤，輸出 `noop`（或不輸出任何 safe output）並結束。
+3. 若資料不足（例如 issue 內文為空）、權限不足或任何錯誤，不輸出任何 safe output 並結束。
 
 ### 回覆格式
 
