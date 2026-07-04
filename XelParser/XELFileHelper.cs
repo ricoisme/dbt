@@ -2,6 +2,7 @@
 
 using Microsoft.SqlServer.XEvent.XELite;
 using System.Collections.Concurrent;
+using System.Globalization;
 using System.Text;
 
 namespace XelParser;
@@ -124,6 +125,173 @@ internal sealed class XELFileHelper
         Console.WriteLine($"Parsing {inputFileName} completed.");
 
         var outputFilePath = Path.Combine(OutputFolder, $"{inputFileName}.txt");
-        await File.WriteAllTextAsync(outputFilePath, sb.ToString(), Encoding.UTF8);
+        var sanitizedContent = SanitizeSpecialCharacters(sb.ToString());
+        await File.WriteAllTextAsync(outputFilePath, sanitizedContent, Encoding.UTF8);
+    }
+
+    /// <summary>
+    /// 高複雜度特殊字元處理：標準化 Unicode、消除零寬字元、壓縮空白、
+    /// 並將不可見控制字元轉換為可追蹤的跳脫序列。
+    /// </summary>
+    /// <param name="input">原始文字內容。</param>
+    /// <returns>完成特殊字元清理後的內容。</returns>
+    private static string SanitizeSpecialCharacters(string input)
+    {
+        if (string.IsNullOrEmpty(input))
+        {
+            return string.Empty;
+        }
+
+        // 將內容先做 Compatibility Decomposition + Composition，統一全形/相容字型差異
+        var normalized = input.Normalize(NormalizationForm.FormKC);
+        var sb = new StringBuilder(normalized.Length + 64);
+
+        var removedZeroWidthCount = 0;
+        var escapedControlCount = 0;
+        var collapsedWhitespaceCount = 0;
+
+        var previousWasWhitespace = false;
+        var previousWasLineBreak = false;
+
+        foreach (var rune in normalized.EnumerateRunes())
+        {
+            var codePoint = rune.Value;
+
+            // 移除常見零寬與排版控制字元
+            if (codePoint is 0x200B or 0x200C or 0x200D or 0x2060 or 0xFEFF)
+            {
+                removedZeroWidthCount++;
+                continue;
+            }
+
+            if (codePoint == '\r' || codePoint == '\n')
+            {
+                if (!previousWasLineBreak)
+                {
+                    sb.Append('\n');
+                }
+
+                previousWasLineBreak = true;
+                previousWasWhitespace = false;
+                continue;
+            }
+
+            previousWasLineBreak = false;
+
+            // 統一 tab 與各類 Unicode 空白為一般空白，並壓縮連續空白
+            if (Rune.IsWhiteSpace(rune) || codePoint == '\t')
+            {
+                if (!previousWasWhitespace)
+                {
+                    sb.Append(' ');
+                }
+                else
+                {
+                    collapsedWhitespaceCount++;
+                }
+
+                previousWasWhitespace = true;
+                continue;
+            }
+
+            previousWasWhitespace = false;
+
+            var category = Rune.GetUnicodeCategory(rune);
+
+            // 將不可見控制字元或格式控制字元轉為 \u{XXXX} 形式，避免資料遺失又方便追蹤
+            if (category is UnicodeCategory.Control or UnicodeCategory.Format or UnicodeCategory.OtherNotAssigned)
+            {
+                sb.Append("\\u{");
+                sb.Append(codePoint.ToString("X"));
+                sb.Append('}');
+                escapedControlCount++;
+                continue;
+            }
+
+            // 常見「智慧標點」映射為 ASCII，減少後續系統轉碼問題
+            switch (codePoint)
+            {
+                case 0x2018:
+                case 0x2019:
+                case 0x2032:
+                    sb.Append('\'');
+                    continue;
+                case 0x201C:
+                case 0x201D:
+                case 0x2033:
+                    sb.Append('"');
+                    continue;
+                case 0x2013:
+                case 0x2014:
+                case 0x2212:
+                    sb.Append('-');
+                    continue;
+                case 0x2026:
+                    sb.Append("...");
+                    continue;
+            }
+
+            sb.Append(rune);
+        }
+
+        var processed = sb.ToString().Trim();
+
+        // 將 3 行以上空行收斂為最多 2 行，避免輸出檔案被稀釋
+        processed = CollapseExcessiveBlankLines(processed, maxConsecutiveBlankLines: 2);
+
+        // 附加處理摘要，方便追查來源資料品質
+        if (removedZeroWidthCount > 0 || escapedControlCount > 0 || collapsedWhitespaceCount > 0)
+        {
+            processed += Environment.NewLine;
+            processed += Environment.NewLine;
+            processed += $"[SanitizeSummary] RemovedZeroWidth={removedZeroWidthCount}; EscapedControl={escapedControlCount}; CollapsedWhitespace={collapsedWhitespaceCount}";
+        }
+
+        return processed;
+    }
+
+    /// <summary>
+    /// 收斂過多連續空白行。
+    /// </summary>
+    /// <param name="input">輸入內容。</param>
+    /// <param name="maxConsecutiveBlankLines">允許的最大連續空白行數。</param>
+    /// <returns>收斂後的文字內容。</returns>
+    private static string CollapseExcessiveBlankLines(string input, int maxConsecutiveBlankLines)
+    {
+        if (string.IsNullOrEmpty(input))
+        {
+            return string.Empty;
+        }
+
+        var lines = input.Split('\n');
+        var sb = new StringBuilder(input.Length);
+        var blankCount = 0;
+
+        for (var i = 0; i < lines.Length; i++)
+        {
+            var line = lines[i].TrimEnd('\r');
+            var isBlank = string.IsNullOrWhiteSpace(line);
+
+            if (isBlank)
+            {
+                blankCount++;
+                if (blankCount > maxConsecutiveBlankLines)
+                {
+                    continue;
+                }
+            }
+            else
+            {
+                blankCount = 0;
+            }
+
+            sb.Append(line);
+            if (i < lines.Length - 1)
+            {
+                sb.Append('\n');
+            }
+        }
+
+        return sb.ToString();
     }
 }
