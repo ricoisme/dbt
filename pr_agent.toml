@@ -1,0 +1,20 @@
+[config]
+response_language = "zh-TW"
+
+[pr_reviewer]
+extra_instructions = """
+請使用繁體中文回覆，審查時聚焦：
+1. Correctness 與潛在 bug
+2. Security 風險（例如驗證、授權、敏感資訊）
+3. 效能與可維護性
+4. 缺少的測試案例與邊界條件
+
+請提供可執行、具體且精簡的改善建議，避免泛用建議。
+"""
+
+[github_action_config]
+auto_review = true
+publish_output = true
+
+[pr_description]
+publish_description_as_comment = true
