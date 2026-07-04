@@ -1,0 +1,31 @@
+name: PR Agent
+
+on:
+  pull_request:
+    types: [opened, reopened, ready_for_review]
+  workflow_dispatch:
+
+concurrency:
+  group: pr-agent-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  pr_agent_job:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: PR Agent action step
+        uses: the-pr-agent/pr-agent@v0.38.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.MYGITHUB_TOKEN }}
+          GOOGLE_AI_STUDIO__GEMINI_API_KEY: ${{ secrets.GOOGLE_GEMINI_API_KEY }}
+          CONFIG__GIT_PROVIDER: github
+          CONFIG__MODEL: gemini/gemini-2.5-flash
+          CONFIG__FALLBACK_MODELS: '["gemini/gemini-2.5-flash"]'
+          CONFIG__CONFIG_FILE: pr_agent.toml

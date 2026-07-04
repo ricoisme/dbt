@@ -374,4 +374,6 @@ FodyWeavers.xsd
 tempfiles
 docs
 
-workflows
+#workflows
+.github/workflows/issue-non-copilot-processor.lock.yml
+.github/workflows/issue-non-copilot-processor.md
