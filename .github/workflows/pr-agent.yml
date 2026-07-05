@@ -28,4 +28,3 @@ jobs:
           CONFIG__GIT_PROVIDER: github
           CONFIG__MODEL: gemini/gemini-2.5-flash
           CONFIG__FALLBACK_MODELS: '["gemini/gemini-2.5-flash"]'
-          CONFIG__CONFIG_FILE: pr_agent.toml
